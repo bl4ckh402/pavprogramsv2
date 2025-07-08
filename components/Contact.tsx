@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Phone, MapPin, Send } from "lucide-react"
+import { Mail, Send } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 gsap.registerPlugin(ScrollTrigger)
@@ -171,27 +171,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <p className="text-gray-400">Email</p>
-                  <p className="text-white">hello@yourname.com</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-full glass-effect">
-                  <Phone className="h-6 w-6 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-gray-400">Phone</p>
-                  <p className="text-white">+1 (555) 123-4567</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-full glass-effect">
-                  <MapPin className="h-6 w-6 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-gray-400">Location</p>
-                  <p className="text-white">San Francisco, CA</p>
+                  <p className="text-white">pavkiptoo@gmail.com</p>
                 </div>
               </div>
             </div>

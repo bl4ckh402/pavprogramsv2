@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,10 +18,31 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isClient, setIsClient] = useState(false)
+  const [particles, setParticles] = useState<Array<{
+    left: string
+    top: string
+    animationDelay: string
+    animationDuration: string
+  }>>([])
 
   const { signIn } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
+
+  useEffect(() => {
+    setIsClient(true)
+    
+    // Generate particles
+    const newParticles = Array.from({ length: 50 }, () => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      animationDelay: `${Math.random() * 5}s`,
+      animationDuration: `${3 + Math.random() * 4}s`,
+    }))
+    
+    setParticles(newParticles)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,15 +78,15 @@ export default function LoginForm() {
 
       {/* Floating particles */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(50)].map((_, i) => (
+        {isClient && particles.map((particle, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full animate-pulse"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 4}s`,
+              left: particle.left,
+              top: particle.top,
+              animationDelay: particle.animationDelay,
+              animationDuration: particle.animationDuration,
             }}
           />
         ))}

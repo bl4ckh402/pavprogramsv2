@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { gsap } from "gsap"
 import { Button } from "@/components/ui/button"
 import { ArrowDown, Github, Twitter, Mail } from "lucide-react"
@@ -11,6 +11,46 @@ export default function Hero3D() {
   const subtitleRef = useRef<HTMLParagraphElement>(null)
   const ctaRef = useRef<HTMLDivElement>(null)
   const socialRef = useRef<HTMLDivElement>(null)
+  const [isClient, setIsClient] = useState(false)
+  const [particles, setParticles] = useState<Array<{
+    left: string
+    top: string
+    animationDelay: string
+    animationDuration: string
+  }>>([])
+  const [shapes, setShapes] = useState<Array<{
+    left: string
+    top: string
+    width: string
+    height: string
+    animationDelay: string
+    animationDuration: string
+  }>>([])
+
+  useEffect(() => {
+    setIsClient(true)
+    
+    // Generate particles only on client side
+    const newParticles = Array.from({ length: 100 }, () => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      animationDelay: `${Math.random() * 5}s`,
+      animationDuration: `${3 + Math.random() * 4}s`,
+    }))
+    
+    // Generate shapes only on client side
+    const newShapes = Array.from({ length: 20 }, () => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      width: `${20 + Math.random() * 40}px`,
+      height: `${20 + Math.random() * 40}px`,
+      animationDelay: `${Math.random() * 5}s`,
+      animationDuration: `${8 + Math.random() * 4}s`,
+    }))
+    
+    setParticles(newParticles)
+    setShapes(newShapes)
+  }, [])
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -78,15 +118,15 @@ export default function Hero3D() {
 
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(100)].map((_, i) => (
+        {isClient && particles.length > 0 && particles.map((particle, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full animate-pulse"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 4}s`,
+              left: particle.left,
+              top: particle.top,
+              animationDelay: particle.animationDelay,
+              animationDuration: particle.animationDuration,
             }}
           />
         ))}
@@ -94,17 +134,17 @@ export default function Hero3D() {
 
       {/* Geometric shapes */}
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(20)].map((_, i) => (
+        {isClient && shapes.length > 0 && shapes.map((shape, i) => (
           <div
             key={i}
             className="absolute border border-purple-500/20 rounded-lg animate-float"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: `${20 + Math.random() * 40}px`,
-              height: `${20 + Math.random() * 40}px`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${8 + Math.random() * 4}s`,
+              left: shape.left,
+              top: shape.top,
+              width: shape.width,
+              height: shape.height,
+              animationDelay: shape.animationDelay,
+              animationDuration: shape.animationDuration,
             }}
           />
         ))}

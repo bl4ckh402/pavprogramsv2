@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,10 +19,31 @@ export default function SignupForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isClient, setIsClient] = useState(false)
+  const [particles, setParticles] = useState<Array<{
+    left: string
+    top: string
+    animationDelay: string
+    animationDuration: string
+  }>>([])
 
   const { signUp } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
+
+  useEffect(() => {
+    setIsClient(true)
+    
+    // Generate particles
+    const newParticles = Array.from({ length: 50 }, () => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      animationDelay: `${Math.random() * 5}s`,
+      animationDuration: `${3 + Math.random() * 4}s`,
+    }))
+    
+    setParticles(newParticles)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,21 +56,43 @@ export default function SignupForm() {
       return
     }
 
-    const { error } = await signUp(email, password, fullName)
+    try {
+      const { error } = await signUp(email, password, fullName)
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        console.error("Signup error:", error)
+        
+        let errorMessage = error.message
+        
+        // Handle specific error cases
+        if (error.message.includes("Database error saving new user")) {
+          errorMessage = "There was an issue setting up your account. Please try again or contact support."
+        } else if (error.message.includes("User already registered")) {
+          errorMessage = "An account with this email already exists. Please sign in instead."
+        }
+        
+        setError(errorMessage)
+        toast({
+          title: "Signup Failed",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Account Created!",
+          description: "Please check your email to verify your account. Note: Admin access requires approval.",
+        })
+        router.push("/auth/login")
+      }
+    } catch (err) {
+      console.error("Unexpected signup error:", err)
+      const errorMessage = "An unexpected error occurred. Please try again."
+      setError(errorMessage)
       toast({
         title: "Signup Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       })
-    } else {
-      toast({
-        title: "Account Created!",
-        description: "Please check your email to verify your account. Note: Admin access requires approval.",
-      })
-      router.push("/auth/login")
     }
 
     setLoading(false)
@@ -64,15 +107,15 @@ export default function SignupForm() {
 
       {/* Floating particles */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(50)].map((_, i) => (
+        {isClient && particles.map((particle, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full animate-pulse"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 4}s`,
+              left: particle.left,
+              top: particle.top,
+              animationDelay: particle.animationDelay,
+              animationDuration: particle.animationDuration,
             }}
           />
         ))}

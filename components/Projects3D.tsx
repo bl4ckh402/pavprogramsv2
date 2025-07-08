@@ -31,6 +31,7 @@ export default function Projects3D() {
   const projectsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    console.log('Projects3D: Component mounted')
     fetchProjects()
   }, [])
 
@@ -75,14 +76,18 @@ export default function Projects3D() {
   }, [projects])
 
   const fetchProjects = async () => {
+    console.log('Projects3D: Starting to fetch projects...')
     const supabase = createClient()
     const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false })
 
+    console.log('Projects3D: Query result:', { data, error })
+
     if (error) {
-      console.error("Error fetching projects:", error)
+      console.error("Projects3D: Error fetching projects:", error)
       // Fallback to mock data
       setProjects(mockProjects)
     } else {
+      console.log('Projects3D: Successfully fetched projects:', data)
       setProjects(data || mockProjects)
     }
     setLoading(false)

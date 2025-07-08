@@ -29,6 +29,7 @@ export default function BlogList() {
   }, [])
 
   const fetchPosts = async () => {
+    console.log('BlogList: Starting to fetch posts...')
     const supabase = createClient()
     const { data, error } = await supabase
       .from("blog_posts")
@@ -36,11 +37,14 @@ export default function BlogList() {
       .eq("published", true)
       .order("published_at", { ascending: false })
 
+    console.log('BlogList: Query result:', { data, error })
+
     if (error) {
-      console.error("Error fetching posts:", error)
+      console.error("BlogList: Error fetching posts:", error)
       // Fallback to mock data
       setPosts(mockPosts)
     } else {
+      console.log('BlogList: Successfully fetched posts:', data)
       setPosts(data || mockPosts)
     }
     setLoading(false)
