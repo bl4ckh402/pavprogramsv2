@@ -1,14 +1,11 @@
 #!/usr/bin/env node
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from './lib/supabase.js'
 import 'dotenv/config'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 console.log('🔍 Testing data fetching logic...\n')
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabase = createClient()
 
 // Test projects
 const { data: projects, error: projectsError } = await supabase

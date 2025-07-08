@@ -6,7 +6,7 @@ import Image from "next/image"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, ArrowRight } from "lucide-react"
-import { createClient } from "@/lib/supabase"
+import { useSupabase } from "@/hooks/use-supabase"
 
 interface BlogPost {
   id: string
@@ -23,6 +23,7 @@ interface BlogPost {
 export default function BlogList() {
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
+  const supabase = useSupabase()
 
   useEffect(() => {
     fetchPosts()
@@ -30,7 +31,6 @@ export default function BlogList() {
 
   const fetchPosts = async () => {
     console.log('BlogList: Starting to fetch posts...')
-    const supabase = createClient()
     const { data, error } = await supabase
       .from("blog_posts")
       .select("*")

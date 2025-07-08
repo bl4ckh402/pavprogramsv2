@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Edit, Trash2, Save, X, Eye, EyeOff, Upload, Calendar, Clock } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { createClient } from "@/lib/supabase"
+import useSupabase from "@/hooks/use-supabase"
 import EnhancedWYSIWYGEditor from "./EnhancedWYSIWYGEditor"
 
 interface BlogPost {
@@ -30,6 +30,7 @@ export default function BlogManager() {
   const [isCreating, setIsCreating] = useState(false)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const supabase = useSupabase()
 
   const emptyPost: BlogPost = {
     title: "",
@@ -47,7 +48,6 @@ export default function BlogManager() {
   }, [])
 
   const fetchPosts = async () => {
-    const supabase = createClient()
     const { data, error } = await supabase.from("blog_posts").select("*").order("created_at", { ascending: false })
 
     if (error) {
@@ -73,81 +73,125 @@ export default function BlogManager() {
   }
 
   const handleSave = async (post: BlogPost) => {
-    const supabase = createClient()
+    console.log('Saving blog post:', post)
+    
+    // Validation
+    if (!post.title.trim()) {
+      toast({
+        title: "Error",
+        description: "Blog post title is required",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    if (!post.content.trim()) {
+      toast({
+        title: "Error",
+        description: "Blog post content is required",
+        variant: "destructive",
+      })
+      return
+    }
 
     // Generate slug if not provided
     if (!post.slug && post.title) {
       post.slug = generateSlug(post.title)
     }
 
-    if (post.id) {
-      // Update existing post
-      const { error } = await supabase.from("blog_posts").update(post).eq("id", post.id)
+    try {
+      if (post.id) {
+        // Update existing post
+        console.log('Updating existing post:', post.id)
+        const { error } = await supabase.from("blog_posts").update(post).eq("id", post.id)
 
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to update blog post",
-          variant: "destructive",
-        })
+        if (error) {
+          console.error('Blog post update error:', error)
+          toast({
+            title: "Error",
+            description: `Failed to update blog post: ${error.message}`,
+            variant: "destructive",
+          })
+          return
+        } else {
+          toast({
+            title: "Success",
+            description: "Blog post updated successfully",
+          })
+          fetchPosts()
+        }
       } else {
-        toast({
-          title: "Success",
-          description: "Blog post updated successfully",
-        })
-        fetchPosts()
-      }
-    } else {
-      // Create new post
-      const { error } = await supabase.from("blog_posts").insert([
-        {
-          ...post,
-          published_at: post.published ? new Date().toISOString() : null,
-        },
-      ])
+        // Create new post
+        console.log('Creating new post')
+        const { error } = await supabase.from("blog_posts").insert([
+          {
+            ...post,
+            published_at: post.published ? new Date().toISOString() : null,
+          },
+        ])
 
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to create blog post",
-          variant: "destructive",
-        })
-      } else {
-        toast({
-          title: "Success",
-          description: "Blog post created successfully",
-        })
-        fetchPosts()
+        if (error) {
+          console.error('Blog post creation error:', error)
+          toast({
+            title: "Error",
+            description: `Failed to create blog post: ${error.message}`,
+            variant: "destructive",
+          })
+          return
+        } else {
+          toast({
+            title: "Success",
+            description: "Blog post created successfully",
+          })
+          fetchPosts()
+        }
       }
+
+      setEditingPost(null)
+      setIsCreating(false)
+    } catch (error) {
+      console.error('Unexpected error saving blog post:', error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while saving the blog post",
+        variant: "destructive",
+      })
     }
-
-    setEditingPost(null)
-    setIsCreating(false)
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this blog post?")) return
 
-    const supabase = createClient()
-    const { error } = await supabase.from("blog_posts").delete().eq("id", id)
+    console.log('Deleting blog post:', id)
+    
+    try {
+      const { error } = await supabase.from("blog_posts").delete().eq("id", id)
 
-    if (error) {
+      if (error) {
+        console.error('Blog post deletion error:', error)
+        toast({
+          title: "Error",
+          description: `Failed to delete blog post: ${error.message}`,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Success",
+          description: "Blog post deleted successfully",
+        })
+        fetchPosts()
+      }
+    } catch (error) {
+      console.error('Unexpected error deleting blog post:', error)
       toast({
         title: "Error",
-        description: "Failed to delete blog post",
+        description: "An unexpected error occurred while deleting the blog post",
         variant: "destructive",
       })
-    } else {
-      toast({
-        title: "Success",
-        description: "Blog post deleted successfully",
-      })
-      fetchPosts()
     }
   }
 
   const togglePublished = async (post: BlogPost) => {
-    const supabase = createClient()
     const newPublishedState = !post.published
 
     const { error } = await supabase
@@ -248,12 +292,57 @@ export default function BlogManager() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                placeholder="Featured Image URL"
-                value={editingPost?.image_url || ""}
-                onChange={(e) => setEditingPost((prev) => (prev ? { ...prev, image_url: e.target.value } : null))}
-                className="bg-gray-800/50 border-gray-600/50 text-white placeholder:text-gray-400 focus:border-purple-500"
-              />
+              <div>
+                <label className="text-white font-medium mb-2 block">Featured Image URL</label>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Image URL or upload below"
+                    value={editingPost?.image_url || ""}
+                    onChange={(e) => setEditingPost((prev) => (prev ? { ...prev, image_url: e.target.value } : null))}
+                    className="bg-gray-800/50 border-gray-600/50 text-white placeholder:text-gray-400 focus:border-purple-500"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      
+                      try {
+                        const fileExt = file.name.split('.').pop()
+                        const fileName = `blog-${Date.now()}.${fileExt}`
+                        const filePath = `blog-images/${fileName}`
+                        
+                        const { data, error } = await supabase.storage
+                          .from('project-images')
+                          .upload(filePath, file)
+                        
+                        if (error) {
+                          // Fallback to data URL
+                          const reader = new FileReader()
+                          reader.onload = () => {
+                            setEditingPost((prev) => (prev ? { ...prev, image_url: reader.result as string } : null))
+                          }
+                          reader.readAsDataURL(file)
+                        } else {
+                          const { data: { publicUrl } } = supabase.storage
+                            .from('project-images')
+                            .getPublicUrl(filePath)
+                          setEditingPost((prev) => (prev ? { ...prev, image_url: publicUrl } : null))
+                        }
+                      } catch (error) {
+                        console.error('Upload error:', error)
+                        toast({
+                          title: "Upload failed",
+                          description: "Failed to upload image",
+                          variant: "destructive",
+                        })
+                      }
+                    }}
+                    className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                  />
+                </div>
+              </div>
               <Input
                 type="number"
                 placeholder="Read Time (minutes)"
@@ -299,7 +388,7 @@ export default function BlogManager() {
 
             <div className="flex space-x-4">
               <Button
-                onClick={() => editingPost && handleSave(editingPost)}
+                onClick={() => {editingPost && handleSave(editingPost)}}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-xl glow-effect transition-all duration-300"
               >
                 <Save className="h-4 w-4 mr-2" />

@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Upload, X, Star, ImageIcon, Move } from "lucide-react"
+import { Upload, X, Star, ImageIcon, Move, Loader2 } from "lucide-react"
 import Image from "next/image"
+import useSupabase from "@/hooks/use-supabase"
+import { useToast } from "@/hooks/use-toast"
 
 interface ProjectImage {
   id?: string
@@ -28,28 +30,145 @@ interface ImageUploaderProps {
 
 export default function ImageUploader({ images, onChange, maxImages = 20 }: ImageUploaderProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
+  const { toast } = useToast()
+  const supabase = useSupabase()
+
+  const uploadFileToSupabase = async (file: File): Promise<string> => {
+    
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+    const filePath = `project-images/${fileName}`
+
+    try {
+      // Check if bucket exists first
+      const { data: buckets } = await supabase.storage.listBuckets()
+      const bucketExists = buckets?.find(bucket => bucket.name === 'project-images')
+      
+      if (!bucketExists) {
+        // If bucket doesn't exist, return a data URL as fallback
+        return new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.readAsDataURL(file)
+        })
+      }
+
+      // Upload file to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('project-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) {
+        console.error('Upload error:', error)
+        // Fallback to data URL if upload fails
+        return new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.readAsDataURL(file)
+        })
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('project-images')
+        .getPublicUrl(filePath)
+
+      return publicUrl
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      // Fallback to data URL
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.readAsDataURL(file)
+      })
+    }
+  }
 
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[]) => {
       const remainingSlots = maxImages - images.length
       const filesToProcess = acceptedFiles.slice(0, remainingSlots)
 
-      filesToProcess.forEach((file) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-          const newImage: ProjectImage = {
-            image_url: reader.result as string,
-            alt_text: file.name.replace(/\.[^/.]+$/, ""),
-            caption: "",
-            display_order: images.length,
-            is_featured: images.length === 0, // First image is featured by default
+      if (filesToProcess.length === 0) {
+        toast({
+          title: "Upload limit reached",
+          description: `Maximum ${maxImages} images allowed`,
+          variant: "destructive",
+        })
+        return
+      }
+
+      setUploading(true)
+
+      try {
+        const uploadPromises = filesToProcess.map(async (file, index) => {
+          const fileId = `${Date.now()}-${index}`
+          setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
+
+          try {
+            // Simulate progress for user feedback
+            const progressInterval = setInterval(() => {
+              setUploadProgress(prev => ({
+                ...prev,
+                [fileId]: Math.min(prev[fileId] + 10, 90)
+              }))
+            }, 200)
+
+            const imageUrl = await uploadFileToSupabase(file)
+            
+            clearInterval(progressInterval)
+            setUploadProgress(prev => ({ ...prev, [fileId]: 100 }))
+
+            const newImage: ProjectImage = {
+              image_url: imageUrl,
+              alt_text: file.name.replace(/\.[^/.]+$/, ""),
+              caption: "",
+              display_order: images.length + index,
+              is_featured: images.length === 0 && index === 0, // First image is featured by default
+            }
+
+            return newImage
+          } catch (error) {
+            console.error(`Error uploading ${file.name}:`, error)
+            toast({
+              title: "Upload failed",
+              description: `Failed to upload ${file.name}`,
+              variant: "destructive",
+            })
+            return null
           }
-          onChange([...images, newImage])
+        })
+
+        const uploadedImages = await Promise.all(uploadPromises)
+        const successfulUploads = uploadedImages.filter(Boolean) as ProjectImage[]
+
+        if (successfulUploads.length > 0) {
+          onChange([...images, ...successfulUploads])
+          toast({
+            title: "Upload successful",
+            description: `${successfulUploads.length} image(s) uploaded successfully`,
+          })
         }
-        reader.readAsDataURL(file)
-      })
+      } catch (error) {
+        console.error('Upload error:', error)
+        toast({
+          title: "Upload failed",
+          description: "An error occurred during upload",
+          variant: "destructive",
+        })
+      } finally {
+        setUploading(false)
+        setUploadProgress({})
+      }
     },
-    [images, onChange, maxImages],
+    [images, onChange, maxImages, toast],
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -58,7 +177,7 @@ export default function ImageUploader({ images, onChange, maxImages = 20 }: Imag
       "image/*": [".jpeg", ".jpg", ".png", ".gif", ".webp"],
     },
     maxFiles: maxImages - images.length,
-    disabled: images.length >= maxImages,
+    disabled: images.length >= maxImages || uploading,
   })
 
   const updateImage = (index: number, updates: Partial<ProjectImage>) => {
@@ -115,19 +234,31 @@ export default function ImageUploader({ images, onChange, maxImages = 20 }: Imag
           className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-300 ${
             isDragActive
               ? "border-purple-500 bg-purple-500/10"
+              : uploading
+              ? "border-orange-500 bg-orange-500/10 cursor-not-allowed"
               : "border-gray-600/50 hover:border-purple-500/50 bg-gray-800/30"
           }`}
         >
           <input {...getInputProps()} />
-          <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-white font-medium mb-2">
-            {isDragActive ? "Drop images here..." : "Drag & drop images here"}
-          </p>
-          <p className="text-gray-400 text-sm mb-4">
-            or click to select files ({images.length}/{maxImages} images)
-          </p>
+          {uploading ? (
+            <>
+              <Loader2 className="h-12 w-12 text-orange-400 mx-auto mb-4 animate-spin" />
+              <p className="text-white font-medium mb-2">Uploading images...</p>
+              <p className="text-gray-400 text-sm mb-4">Please wait while we upload your files</p>
+            </>
+          ) : (
+            <>
+              <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-white font-medium mb-2">
+                {isDragActive ? "Drop images here..." : "Drag & drop images here"}
+              </p>
+              <p className="text-gray-400 text-sm mb-4">
+                or click to select files ({images.length}/{maxImages} images)
+              </p>
+            </>
+          )}
           <Badge variant="secondary" className="bg-purple-600/20 text-purple-300">
-            Supports: JPG, PNG, GIF, WebP
+            Supports: JPG, PNG, GIF, WebP (Max 10MB each)
           </Badge>
         </div>
       )}

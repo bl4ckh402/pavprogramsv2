@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Edit, Trash2, Save, X, Upload, ExternalLink, Github } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { createClient } from "@/lib/supabase"
+import useSupabase from "@/hooks/use-supabase"
 import ImageUploader from "./ImageUploader"
 
 interface Project {
@@ -38,6 +38,7 @@ export default function ProjectManager() {
   const [isCreating, setIsCreating] = useState(false)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const supabase = useSupabase()
 
   const emptyProject: Project = {
     title: "",
@@ -55,7 +56,6 @@ export default function ProjectManager() {
   }, [])
 
   const fetchProjects = async () => {
-    const supabase = createClient()
     const { data: projects, error: projectsError } = await supabase
       .from("projects")
       .select("*")
@@ -90,61 +90,34 @@ export default function ProjectManager() {
   }
 
   const handleSave = async (project: Project) => {
-    const supabase = createClient()
-
-    if (project.id) {
-      // Update existing project
-      const { error: projectError } = await supabase
-        .from("projects")
-        .update({
-          title: project.title,
-          description: project.description,
-          image_url: project.images?.[0]?.image_url || project.image_url,
-          technologies: project.technologies,
-          github_url: project.github_url,
-          live_url: project.live_url,
-          featured: project.featured,
-        })
-        .eq("id", project.id)
-
-      if (projectError) {
-        toast({
-          title: "Error",
-          description: "Failed to update project",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Update project images
-      if (project.images && project.images.length > 0) {
-        // Delete existing images
-        await supabase.from("project_images").delete().eq("project_id", project.id)
-
-        // Insert new images
-        const imagesToInsert = project.images.map((img, index) => ({
-          project_id: project.id,
-          image_url: img.image_url,
-          alt_text: img.alt_text,
-          caption: img.caption,
-          display_order: index,
-          is_featured: img.is_featured,
-        }))
-
-        await supabase.from("project_images").insert(imagesToInsert)
-      }
-
+    console.log('Saving project:', project)
+    
+    // Validation
+    if (!project.title.trim()) {
       toast({
-        title: "Success",
-        description: "Project updated successfully",
+        title: "Error",
+        description: "Project title is required",
+        variant: "destructive",
       })
-      fetchProjects()
-    } else {
-      // Create new project
-      const { data: newProject, error: projectError } = await supabase
-        .from("projects")
-        .insert([
-          {
+      return
+    }
+    
+    if (!project.description.trim()) {
+      toast({
+        title: "Error",
+        description: "Project description is required",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      if (project.id) {
+        // Update existing project
+        console.log('Updating existing project:', project.id)
+        const { error: projectError } = await supabase
+          .from("projects")
+          .update({
             title: project.title,
             description: project.description,
             image_url: project.images?.[0]?.image_url || project.image_url,
@@ -152,63 +125,150 @@ export default function ProjectManager() {
             github_url: project.github_url,
             live_url: project.live_url,
             featured: project.featured,
-          },
-        ])
-        .select()
-        .single()
+          })
+          .eq("id", project.id)
 
-      if (projectError || !newProject) {
+        if (projectError) {
+          console.error('Project update error:', projectError)
+          toast({
+            title: "Error",
+            description: `Failed to update project: ${projectError.message}`,
+            variant: "destructive",
+          })
+          return
+        }
+
+        // Update project images
+        if (project.images && project.images.length > 0) {
+          // Delete existing images
+          await supabase.from("project_images").delete().eq("project_id", project.id)
+
+          // Insert new images
+          const imagesToInsert = project.images.map((img, index) => ({
+            project_id: project.id,
+            image_url: img.image_url,
+            alt_text: img.alt_text,
+            caption: img.caption,
+            display_order: index,
+            is_featured: img.is_featured,
+          }))
+
+          const { error: imagesError } = await supabase.from("project_images").insert(imagesToInsert)
+          if (imagesError) {
+            console.error('Images update error:', imagesError)
+          }
+        }
+
         toast({
-          title: "Error",
-          description: "Failed to create project",
-          variant: "destructive",
+          title: "Success",
+          description: "Project updated successfully",
         })
-        return
+        fetchProjects()
+      } else {
+        // Create new project
+        console.log('Creating new project')
+        const { data: newProject, error: projectError } = await supabase
+          .from("projects")
+          .insert([
+            {
+              title: project.title,
+              description: project.description,
+              image_url: project.images?.[0]?.image_url || project.image_url,
+              technologies: project.technologies,
+              github_url: project.github_url,
+              live_url: project.live_url,
+              featured: project.featured,
+            },
+          ])
+          .select()
+          .single()
+
+        if (projectError || !newProject) {
+          console.error('Project creation error:', projectError)
+          toast({
+            title: "Error",
+            description: `Failed to create project: ${projectError?.message}`,
+            variant: "destructive",
+          })
+          return
+        }
+
+        // Insert project images
+        if (project.images && project.images.length > 0) {
+          const imagesToInsert = project.images.map((img, index) => ({
+            project_id: newProject.id,
+            image_url: img.image_url,
+            alt_text: img.alt_text,
+            caption: img.caption,
+            display_order: index,
+            is_featured: img.is_featured,
+          }))
+
+          const { error: imagesError } = await supabase.from("project_images").insert(imagesToInsert)
+          if (imagesError) {
+            console.error('Images creation error:', imagesError)
+          }
+        }
+
+        toast({
+          title: "Success",
+          description: "Project created successfully",
+        })
+        fetchProjects()
       }
 
-      // Insert project images
-      if (project.images && project.images.length > 0) {
-        const imagesToInsert = project.images.map((img, index) => ({
-          project_id: newProject.id,
-          image_url: img.image_url,
-          alt_text: img.alt_text,
-          caption: img.caption,
-          display_order: index,
-          is_featured: img.is_featured,
-        }))
-
-        await supabase.from("project_images").insert(imagesToInsert)
-      }
-
+      setEditingProject(null)
+      setIsCreating(false)
+    } catch (error) {
+      console.error('Unexpected error saving project:', error)
       toast({
-        title: "Success",
-        description: "Project created successfully",
+        title: "Error",
+        description: "An unexpected error occurred while saving the project",
+        variant: "destructive",
       })
-      fetchProjects()
     }
-
-    setEditingProject(null)
-    setIsCreating(false)
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this project?")) return
 
-    const supabase = createClient()
-    const { error } = await supabase.from("projects").delete().eq("id", id)
+    console.log('Deleting project:', id)
+    
+    try {
+      // First delete associated images
+      const { error: imagesError } = await supabase
+        .from("project_images")
+        .delete()
+        .eq("project_id", id)
+      
+      if (imagesError) {
+        console.error('Error deleting project images:', imagesError)
+      }
 
-    if (error) {
+      // Then delete the project
+      const { error } = await supabase.from("projects").delete().eq("id", id)
+
+      if (error) {
+        console.error('Project deletion error:', error)
+        toast({
+          title: "Error",
+          description: `Failed to delete project: ${error.message}`,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Success",
+          description: "Project deleted successfully",
+        })
+        fetchProjects()
+      }
+    } catch (error) {
+      console.error('Unexpected error deleting project:', error)
       toast({
         title: "Error",
-        description: "Failed to delete project",
+        description: "An unexpected error occurred while deleting the project",
         variant: "destructive",
       })
-    } else {
-      toast({
-        title: "Success",
-        description: "Project deleted successfully",
-      })
-      fetchProjects()
     }
   }
 
@@ -330,7 +390,7 @@ export default function ProjectManager() {
 
             <div className="flex space-x-4">
               <Button
-                onClick={() => editingProject && handleSave(editingProject)}
+                onClick={() => {editingProject && handleSave(editingProject)}}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-xl glow-effect transition-all duration-300"
               >
                 <Save className="h-4 w-4 mr-2" />

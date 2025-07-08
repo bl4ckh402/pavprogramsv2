@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { TrendingUp, FileText, Eye, Calendar } from "lucide-react"
-import { createClient } from "@/lib/supabase"
+import { useSupabase } from "@/hooks/use-supabase"
 
 interface Stats {
   totalProjects: number
@@ -20,14 +20,13 @@ export default function AdminStats() {
     draftPosts: 0,
   })
   const [loading, setLoading] = useState(true)
+  const supabase = useSupabase()
 
   useEffect(() => {
     fetchStats()
   }, [])
 
   const fetchStats = async () => {
-    const supabase = createClient()
-
     try {
       // Fetch projects count
       const { count: projectsCount } = await supabase.from("projects").select("*", { count: "exact", head: true })

@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ExternalLink, Github, TrendingUp, Bot, Zap, Database } from "lucide-react"
-import { createClient } from "@/lib/supabase"
+import { useSupabase } from "@/hooks/use-supabase"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -29,6 +29,7 @@ export default function Projects3D() {
   const sectionRef = useRef<HTMLElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const projectsRef = useRef<HTMLDivElement>(null)
+  const supabase = useSupabase()
 
   useEffect(() => {
     console.log('Projects3D: Component mounted')
@@ -77,7 +78,6 @@ export default function Projects3D() {
 
   const fetchProjects = async () => {
     console.log('Projects3D: Starting to fetch projects...')
-    const supabase = createClient()
     const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false })
 
     console.log('Projects3D: Query result:', { data, error })

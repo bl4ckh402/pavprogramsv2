@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase"
+import { useSupabase } from "@/hooks/use-supabase"
 
 interface Project {
   id: string
@@ -19,6 +19,7 @@ export default function ProjectsDebug() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const supabase = useSupabase()
 
   useEffect(() => {
     console.log('ProjectsDebug: Component mounted, fetching projects...')
@@ -28,7 +29,6 @@ export default function ProjectsDebug() {
   const fetchProjects = async () => {
     try {
       console.log('ProjectsDebug: Starting to fetch projects...')
-      const supabase = createClient()
       const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false })
 
       console.log('ProjectsDebug: Query result:', { data, error })

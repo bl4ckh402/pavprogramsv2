@@ -1,19 +1,9 @@
 #!/usr/bin/env node
 
-const { createClient } = require('@supabase/supabase-js')
+const { createClient } = require('./lib/supabase.ts')
 require('dotenv').config()
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing required environment variables')
-  console.error('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'Present' : 'Missing')
-  console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Present' : 'Missing')
-  process.exit(1)
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabase = createClient()
 
 async function testFrontendDataFetch() {
   try {

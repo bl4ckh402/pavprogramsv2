@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ExternalLink, Github } from "lucide-react"
-import { createClient } from "@/lib/supabase"
+import { useSupabase } from "@/hooks/use-supabase"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -28,6 +28,7 @@ export default function Projects() {
   const sectionRef = useRef<HTMLElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const projectsRef = useRef<HTMLDivElement>(null)
+  const supabase = useSupabase()
 
   useEffect(() => {
     fetchProjects()
@@ -76,7 +77,6 @@ export default function Projects() {
   }, [projects])
 
   const fetchProjects = async () => {
-    const supabase = createClient()
     const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false })
 
     if (error) {
