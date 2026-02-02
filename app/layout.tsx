@@ -5,7 +5,6 @@ import "./globals.css"
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import { Toaster } from "@/components/ui/toaster"
-import { AuthProvider } from "@/components/auth/AuthProvider"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -38,14 +37,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased min-h-screen`}>
-        <AuthProvider>
-          <Navbar />
-          <main className="relative">
-            {children}
-          </main>
-          <Footer />
-          <Toaster />
-        </AuthProvider>
+        <Navbar />
+        <main className="relative">
+          {children}
+        </main>
+        <Footer />
+        <Toaster />
       </body>
     </html>
   )
