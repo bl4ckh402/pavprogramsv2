@@ -18,16 +18,16 @@ const playfair = Playfair_Display({
 })
 
 export const metadata: Metadata = {
-  title: "Pavin Kiptoo",
-  description: "A portfolio showcasing my projects and solutions",
-  keywords: ["portfolio", "web development", "design", "creative"],
+  title: "Pavin Kiptoo - Full-Stack Developer & UI/UX Designer",
+  description: "Portfolio showcasing modern web development, innovative design, and cutting-edge technologies by Pavin Kiptoo",
+  keywords: ["portfolio", "web development", "UI/UX design", "full-stack developer", "modern design"],
   authors: [{ name: "Pavin Kiptoo" }],
   openGraph: {
-    title: "Pavin Kiptoo",
-    description: "A portfolio showcasing my projects and solutions",
+    title: "Pavin Kiptoo - Full-Stack Developer & UI/UX Designer",
+    description: "Portfolio showcasing modern web development, innovative design, and cutting-edge technologies",
     type: "website",
   },
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -37,10 +37,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-black text-white`}>
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased min-h-screen`}>
         <AuthProvider>
           <Navbar />
-          {children}
+          <main className="relative">
+            {children}
+          </main>
           <Footer />
           <Toaster />
         </AuthProvider>

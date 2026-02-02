@@ -1,21 +1,17 @@
 "use client"
 
 import type React from "react"
+import { createContext, useContext, useState } from "react"
 
-import { createContext, useContext, useEffect, useState } from "react"
-import type { User } from "@supabase/supabase-js"
-import { useSupabase } from "@/hooks/use-supabase"
-
-interface Profile {
+interface User {
   id: string
   email: string
-  full_name?: string
+  name: string
   role: "user" | "admin"
 }
 
 interface AuthContextType {
   user: User | null
-  profile: Profile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>
@@ -25,106 +21,62 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Demo admin credentials
+const DEMO_ADMIN = {
+  email: "admin@pavinkiptoo.com",
+  password: "admin123",
+  user: {
+    id: "1",
+    email: "admin@pavinkiptoo.com", 
+    name: "Pavin Kiptoo",
+    role: "admin" as const
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = useSupabase()
-
-  useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-      }
-
-      setLoading(false)
-    }
-
-    getInitialSession()
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-      } else {
-        setProfile(null)
-      }
-
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
-
-      if (error) throw error
-      setProfile(data)
-    } catch (error) {
-      console.error("Error fetching profile:", error)
-      setProfile(null)
-    }
-  }
+  const [loading, setLoading] = useState(false)
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { error }
+    setLoading(true)
+    
+    // Simple demo authentication
+    if (email === DEMO_ADMIN.email && password === DEMO_ADMIN.password) {
+      setUser(DEMO_ADMIN.user)
+      setLoading(false)
+      return { error: null }
+    }
+    
+    setLoading(false)
+    return { error: { message: "Invalid credentials" } }
   }
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      })
-      
-      if (error) {
-        console.error("Auth signup error:", error)
-        return { error }
-      }
-      
-      return { error: null }
-    } catch (err) {
-      console.error("Unexpected signup error:", err)
-      return { 
-        error: { 
-          message: "An unexpected error occurred during signup. Please try again." 
-        } 
-      }
+    setLoading(true)
+    
+    // For demo purposes, just create a user
+    const newUser: User = {
+      id: Date.now().toString(),
+      email,
+      name: fullName,
+      role: "user"
     }
+    
+    setUser(newUser)
+    setLoading(false)
+    return { error: null }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    setUser(null)
   }
 
-  const isAdmin = profile?.role === "admin"
+  const isAdmin = user?.role === "admin"
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        profile,
         loading,
         signIn,
         signUp,

@@ -1,178 +1,95 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useRef, useEffect } from "react"
-import { gsap } from "gsap"
-import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Send } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Mail, Send, MapPin, Phone } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-
-gsap.registerPlugin(ScrollTrigger)
+import { localData } from "@/lib/local-data"
 
 export default function Contact() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    message: "",
-  })
+  const [formData, setFormData] = useState({ name: "", email: "", message: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
-
-  const sectionRef = useRef<HTMLElement>(null)
-  const titleRef = useRef<HTMLHeadingElement>(null)
-  const formRef = useRef<HTMLDivElement>(null)
-  const infoRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        titleRef.current,
-        { opacity: 0, y: 50 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 1,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: titleRef.current,
-            start: "top 80%",
-          },
-        },
-      )
-
-      gsap.fromTo(
-        [formRef.current, infoRef.current],
-        { opacity: 0, y: 50 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 1,
-          ease: "power3.out",
-          stagger: 0.2,
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 70%",
-          },
-        },
-      )
-    }, sectionRef)
-
-    return () => ctx.revert()
-  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    toast({
-      title: "Message sent!",
-      description: "Thank you for your message. I'll get back to you soon.",
-    })
-
-    setFormData({ name: "", email: "", message: "" })
-    setIsSubmitting(false)
+    try {
+      localData.saveContactMessage(formData)
+      toast({ title: "Message sent!", description: "Thank you for your message. I'll get back to you soon." })
+      setFormData({ name: "", email: "", message: "" })
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to send message. Please try again.", variant: "destructive" })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   return (
-    <section id="contact" ref={sectionRef} className="section-padding bg-gradient-to-b from-gray-900 to-black">
+    <section id="contact" className="section-padding bg-black">
       <div className="container-custom">
-        <h2 ref={titleRef} className="text-4xl md:text-6xl font-bold text-center mb-16 font-playfair">
-          Let's <span className="gradient-text">Connect</span>
-        </h2>
+        <div className="text-center mb-16">
+          <Badge className="mb-4 bg-blue-600/20 text-blue-400 border-blue-500/30">Get In Touch</Badge>
+          <h2 className="text-5xl md:text-7xl font-bold font-playfair mb-6">
+            Let's <span className="gradient-text">Connect</span>
+          </h2>
+          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+            Ready to bring your ideas to life? Let's discuss your next project
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <Card
-            ref={formRef}
-            className="bg-gray-900/80 backdrop-blur-xl border-gray-700/50 hover:glow-effect transition-all duration-500"
-          >
-            <CardHeader>
-              <CardTitle className="text-2xl font-playfair">Send me a message</CardTitle>
-            </CardHeader>
-            <CardContent className="bg-gray-900/30">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <Input
-                    name="name"
-                    placeholder="Your Name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                <div>
-                  <Input
-                    name="email"
-                    type="email"
-                    placeholder="Your Email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                <div>
-                  <Textarea
-                    name="message"
-                    placeholder="Your Message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    required
-                    rows={5}
-                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 resize-none"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                >
-                  {isSubmitting ? (
-                    "Sending..."
-                  ) : (
-                    <>
-                      Send Message
-                      <Send className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          <div className="glass-card rounded-2xl p-8">
+            <h3 className="text-2xl font-bold text-white mb-6">Send a Message</h3>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <Input name="name" placeholder="Your Name" value={formData.name} onChange={handleChange} required className="bg-black/50 border-blue-500/30 text-white" />
+              </div>
+              <div>
+                <Input name="email" type="email" placeholder="Your Email" value={formData.email} onChange={handleChange} required className="bg-black/50 border-blue-500/30 text-white" />
+              </div>
+              <div>
+                <Textarea name="message" placeholder="Your Message" value={formData.message} onChange={handleChange} required rows={6} className="bg-black/50 border-blue-500/30 text-white resize-none" />
+              </div>
+              <Button type="submit" disabled={isSubmitting} className="btn-primary w-full py-4 text-lg">
+                {isSubmitting ? "Sending..." : (<><span>Send Message</span><Send className="ml-2 h-5 w-5" /></>)}
+              </Button>
+            </form>
+          </div>
 
-          <div ref={infoRef} className="space-y-8">
-            <div>
-              <h3 className="text-3xl font-bold mb-6 font-playfair">Get in touch</h3>
-              <p className="text-gray-300 text-lg leading-relaxed mb-8">
-                I'm always interested in new opportunities and exciting projects. Whether you have a question or just
-                want to say hi, I'll try my best to get back to you!
+          <div className="space-y-8">
+            <div className="glass-card rounded-2xl p-8">
+              <h3 className="text-2xl font-bold text-white mb-6">Let's Talk</h3>
+              <p className="text-gray-400 text-lg mb-8">
+                I'm always excited to work on new projects and collaborate with amazing people.
               </p>
-            </div>
-
-            <div className="space-y-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-full glass-effect">
-                  <Mail className="h-6 w-6 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-gray-400">Email</p>
-                  <p className="text-white">pavkiptoo@gmail.com</p>
-                </div>
+              <div className="space-y-4">
+                {[
+                  { icon: Mail, label: "Email", value: "pavkiptoo@gmail.com", href: "mailto:pavkiptoo@gmail.com" },
+                  { icon: Phone, label: "Phone", value: "+254 720 447 239", href: "tel:+254720447239" },
+                  { icon: MapPin, label: "Location", value: "Nairobi, Kenya", href: "#" }
+                ].map((item, i) => {
+                  const Icon = item.icon
+                  return (
+                    <a key={i} href={item.href} className="flex items-center gap-4 p-4 glass-card rounded-xl hover:glow-blue transition-all">
+                      <div className="p-3 rounded-xl bg-blue-600">
+                        <Icon className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-sm">{item.label}</p>
+                        <p className="text-white font-medium">{item.value}</p>
+                      </div>
+                    </a>
+                  )
+                })}
               </div>
             </div>
           </div>
