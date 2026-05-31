@@ -1,0 +1,166 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom palette matching screenshots and spatial theme */
+  --color-surface-container-lowest: #0b0e15;
+  --color-surface-dim: #10131a;
+  --color-surface-bright: #363941;
+  --color-surface-container-low: #191b23;
+  --color-surface-container: #1d2027;
+  --color-surface-container-high: #272a31;
+  --color-surface-container-highest: #32353c;
+  --color-on-surface: #e1e2ec;
+  --color-on-surface-variant: #c2c6d6;
+  --color-primary: #adc6ff;
+  --color-on-primary: #002e6a;
+  --color-primary-container: #4d8eff;
+  --color-on-primary-container: #00285d;
+  --color-secondary: #c6c6c7;
+  --color-tertiary: #ffb786;
+  --color-outline: #8c909f;
+  
+  --color-glass-stroke: rgba(255, 255, 255, 0.08);
+  --color-emissive-blue: rgba(59, 130, 246, 0.55);
+}
+
+@layer base {
+  body {
+    background-color: #040406;
+    color: #e1e2ec;
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(173, 198, 255, 0.2) rgba(0, 0, 0, 0);
+  }
+
+  /* Custom premium scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(173, 198, 255, 0.15);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(173, 198, 255, 0.3);
+  }
+}
+
+/* Glassmorphism panel layers */
+.glass-panel {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-panel-heavy {
+  background: rgba(10, 11, 16, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Metallic brushed lettering text */
+.metallic-text {
+  background: linear-gradient(135deg, #ffffff 30%, #a2a8bd 70%, #687190 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.metallic-text-warm {
+  background: linear-gradient(135deg, #ffdcc6 0%, #ffb786 50%, #df7412 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle holographic color banding (Chromatic Aberration mimicry) */
+.chromatic-glow {
+  text-shadow: 
+    -1.5px -1px 0px rgba(255, 0, 0, 0.15),
+    1.5px 1px 0px rgba(0, 0, 255, 0.15);
+}
+
+/* Ambient shadow & glows */
+.shadow-ao {
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.95), 0 30px 60px rgba(0, 0, 0, 0.65);
+}
+
+.glow-blue {
+  box-shadow: 0 0 30px rgba(77, 142, 255, 0.18);
+}
+
+/* Interactive custom text masks */
+.text-mask {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Cinematic film noise overlay */
+.film-grain {
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  width: 200%;
+  height: 200%;
+  background: transparent url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E") repeat;
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 9999;
+  animation: noise-drift 12s steps(8) infinite;
+}
+
+@keyframes noise-drift {
+  0%, 100% { transform:translate(0, 0); }
+  10% { transform:translate(-1%, -1%); }
+  20% { transform:translate(-2%, 1%); }
+  35% { transform:translate(1%, -2%); }
+  50% { transform:translate(-1%, 2%); }
+  65% { transform:translate(2%, 1%); }
+  80% { transform:translate(-2%, -1%); }
+  90% { transform:translate(1%, 2%); }
+}
+
+/* Perspective settings for bento 3D card tilt */
+.perspective-container {
+  perspective: 1000px;
+}
+
+.persp-card {
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+
+/* Ripple wave canvas setup */
+#bg-canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
